@@ -28,12 +28,24 @@ class Field(val width: Int, val height: Int, bombRate: Float = 0.2f) {
 
 
     private val Int.findInMatrix get() = div(width) to mod(width)
+    private val Pair<Int, Int>.numberInMatrix get() = first * width + second
+
     fun onCellClick(number: Int) {
         val (i, j) = number.findInMatrix.also { println(it) }
         val cell = matrix[i][j]
         if (cell.isBomb) onBombClicked()
         else {
             cell.onClick()
+            behindIndexes(i, j).filter {
+                matrix.safeGet(it.first, it.second)?.isBomb == false &&
+                        matrix.safeGet(it.first, it.second)?.status?.isNotOpen == true
+            }.forEach { (newI, newJ) ->
+                //todo
+                matrix[newI][newJ].onClick()
+                if (calcCellPoints((newI to newJ).numberInMatrix) == 0) {
+                    onCellClick((newI to newJ).numberInMatrix)
+                }
+            }
         }
     }
 
@@ -52,6 +64,7 @@ class Field(val width: Int, val height: Int, bombRate: Float = 0.2f) {
     private fun calcCellPoints(number: Int): Int {
         val (i, j) = number.findInMatrix
         val behindCells = number.findInMatrix.behindCells
+        if (matrix[i][j].isBomb) return -1
         return behindCells.fold(0) { acc, cell ->
             acc + if (cell.isBomb) 1 else 0
         }
